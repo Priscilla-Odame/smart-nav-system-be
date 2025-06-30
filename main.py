@@ -1,28 +1,21 @@
 from fastapi import FastAPI, File, UploadFile
 from fastapi.responses import JSONResponse
+from obstacle_detector import detect_obstacles
 import shutil
 import os
-from obstacle_detector import detect_obstacles
 
 app = FastAPI()
 
 
+# ----------- YOLO OBSTACLE DETECTION -----------
 @app.post("/detect")
 async def detect(file: UploadFile = File(...)):
-    try:
-        # Save uploaded image
-        os.makedirs("images", exist_ok=True)
-        file_path = f"images/{file.filename}"
-        with open(file_path, "wb") as f:
-            shutil.copyfileobj(file.file, f)
+    os.makedirs("images", exist_ok=True)
+    file_location = f"images/{file.filename}"
+    with open(file_location, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
 
-        # Run detection
-        result = detect_obstacles(file_path)
+    result = detect_obstacles(file_location)
+    os.remove(file_location)
 
-        # Clean up
-        os.remove(file_path)
-
-        return JSONResponse(content=result)
-
-    except Exception as e:
-        return JSONResponse(content={"error": str(e)}, status_code=500)
+    return JSONResponse(content=result)
